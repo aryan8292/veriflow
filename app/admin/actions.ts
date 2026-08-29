@@ -14,7 +14,7 @@ function getSql() {
   if (!databaseUrl) throw new Error('Database is not configured')
   return neon(databaseUrl)
 }
-async function guard() { await initDatabase(); const session = await getAdminSession(); if (!session) throw new Error('Unauthorized'); return session }
+async function guard() { const session = await getAdminSession(); if (!session) throw new Error('Unauthorized'); return session }
 function text(form: FormData, key: string, max = 2000) { const value = String(form.get(key) ?? '').trim(); if (value.length > max) throw new Error(`${key} is too long`); return value }
 
 async function fetchLiveData() {
@@ -37,6 +37,9 @@ export async function loginAdmin(formData: FormData) { const email = text(formDa
 export async function logoutAdmin() { await clearAdminSession(); redirect('/admin/login') }
 export async function getAdminOverviewMetrics() {
   const session = await guard()
+  if (!process.env.DATABASE_URL && process.env.NODE_ENV !== 'production') {
+    return { session, campaigns: { total: 0, active: 0 }, stats: { impressions: 0, clicks: 0 }, logs: [], live: { code: DEFAULT_DB_CODE, devices: [], messages: [], activeDevices: [], lastUpdated: new Date().toISOString(), error: 'Neon is not connected in this preview. Demo mode is active.' } }
+  }
   const [campaigns, stats, logs, live] = await Promise.all([
     getSql()`SELECT count(*)::int AS total, count(*) FILTER (WHERE is_active)::int AS active FROM popup_campaigns`,
     getSql()`SELECT COALESCE(sum(impressions),0)::int AS impressions, COALESCE(sum(clicks),0)::int AS clicks FROM popup_campaigns`,

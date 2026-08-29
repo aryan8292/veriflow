@@ -11,7 +11,16 @@ function getSql() {
   return neon(databaseUrl)
 }
 
+const DEMO_EMAIL = 'demo@veriflow.local'
+const DEMO_PASSWORD = 'DemoVeriflow123!'
+const DEMO_COOKIE = 'veriflow_demo_admin'
+
 export async function loginAdmin(email: string, password: string) {
+  if (!process.env.DATABASE_URL && process.env.NODE_ENV !== 'production' && email.toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD) {
+    const jar = await cookies()
+    jar.set(DEMO_COOKIE, '1', { httpOnly: true, sameSite: 'lax', secure: false, path: '/', maxAge: 3600 })
+    return { email: DEMO_EMAIL, role: 'admin' }
+  }
   await initDatabase()
   const sql = getSql()
   const rows = await sql`SELECT id, email, password_hash, role FROM admin_users WHERE lower(email) = lower(${email}) LIMIT 1`
@@ -25,8 +34,13 @@ export async function loginAdmin(email: string, password: string) {
 }
 
 export async function getAdminSession() {
+  const jar = await cookies()
+  if (!process.env.DATABASE_URL && process.env.NODE_ENV !== 'production') {
+    if (jar.get(DEMO_COOKIE)?.value === '1') return { email: DEMO_EMAIL, role: 'admin' }
+    return null
+  }
   await initDatabase()
-  const token = (await cookies()).get(ADMIN_COOKIE)?.value
+  const token = jar.get(ADMIN_COOKIE)?.value
   if (!token) return null
   const sql = getSql()
   const rows = await sql`SELECT u.id, u.email, u.role FROM admin_sessions s JOIN admin_users u ON u.id = s.user_id WHERE s.id = ${token} AND s.expires_at > NOW() LIMIT 1`
@@ -35,6 +49,8 @@ export async function getAdminSession() {
 
 export async function clearAdminSession() {
   const jar = await cookies()
+  jar.delete(DEMO_COOKIE)
+  if (!process.env.DATABASE_URL && process.env.NODE_ENV !== 'production') return
   const token = jar.get(ADMIN_COOKIE)?.value
   if (token) {
     const sql = getSql()

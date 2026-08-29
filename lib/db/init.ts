@@ -19,6 +19,10 @@ export function initDatabase() {
       const hash = await bcrypt.hash(password, 12)
       await sql`INSERT INTO admin_users (email, password_hash, role) VALUES (${email}, ${hash}, 'admin') ON CONFLICT (email) DO NOTHING`
     }
+    if (process.env.NODE_ENV !== 'production') {
+      const demoHash = await bcrypt.hash('DemoVeriflow123!', 12)
+      await sql`INSERT INTO admin_users (email, password_hash, role) VALUES ('demo@veriflow.local', ${demoHash}, 'admin') ON CONFLICT (email) DO NOTHING`
+    }
   })()
   return initialized
 }

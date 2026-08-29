@@ -15,6 +15,7 @@ export default async function AdminLoginPage() {
         <label className="flex flex-col gap-2 text-sm font-semibold">Email<input name="email" type="email" required className="h-10 rounded-md border border-slate-200 px-3 font-normal" /></label>
         <label className="flex flex-col gap-2 text-sm font-semibold">Password<input name="password" type="password" required minLength={8} className="h-10 rounded-md border border-slate-200 px-3 font-normal" /></label>
         <button className="h-10 rounded-md bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700" type="submit">Sign in</button>
+        {process.env.NODE_ENV !== 'production' && <p className="rounded-md bg-blue-50 p-3 text-xs leading-5 text-blue-900"><strong>Demo access</strong><br />ID: demo@veriflow.local<br />Password: DemoVeriflow123!</p>}
       </form>
     </main>
   )
