@@ -3,7 +3,7 @@ import { ADMIN_COOKIE, hasAdminCookie } from '@/lib/auth-constants'
 
 export function middleware(request: NextRequest) {
   const token = request.cookies.get(ADMIN_COOKIE)?.value
-  const demo = process.env.NODE_ENV !== 'production' && request.cookies.get('veriflow_demo_admin')?.value === '1'
+  const demo = request.cookies.get('veriflow_demo_admin')?.value === '1'
   const path = request.nextUrl.pathname
   if (path === '/admin/login') { if (hasAdminCookie(token) || demo) return NextResponse.redirect(new URL('/admin', request.url), 307); return NextResponse.next() }
   if (path.startsWith('/admin') && !hasAdminCookie(token) && !demo) return NextResponse.redirect(new URL('/admin/login', request.url), 307)
