@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Activity, BarChart3, ChevronRight, FileText, Globe2, LayoutDashboard, LockKeyhole, Megaphone, Menu, Save, Settings2, ShieldCheck, Users, X, LogOut } from 'lucide-react'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
@@ -25,6 +25,21 @@ const nav: { id: Section; label: string; icon: typeof LayoutDashboard }[] = [
 export default function AdminPageClient({ initialData, sessionEmail }: { initialData: any, sessionEmail: string }) {
   const [section, setSection] = useState<Section>('overview')
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [data, setData] = useState(initialData)
+  const [refreshing, setRefreshing] = useState(false)
+
+  async function refreshData() {
+    setRefreshing(true)
+    try {
+      const response = await fetch('/admin/api/overview', { cache: 'no-store' })
+      if (response.ok) setData(await response.json())
+    } finally { setRefreshing(false) }
+  }
+
+  useEffect(() => {
+    const timer = window.setInterval(refreshData, 10000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   return (
     <main className="min-h-screen bg-slate-50 text-slate-950">
@@ -71,11 +86,15 @@ export default function AdminPageClient({ initialData, sessionEmail }: { initial
           <div className="mb-7">
             <h1 className="text-3xl font-bold tracking-tight text-slate-900">{nav.find((item) => item.id === section)?.label}</h1>
           </div>
-          {section === 'overview' && <Overview data={initialData} />}
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <p className="text-xs text-slate-500">Live API refreshes every 10 seconds · {data.live?.error ? data.live.error : `Last checked ${new Date(data.live?.lastUpdated).toLocaleTimeString()}`}</p>
+            <Button variant="outline" size="sm" onClick={refreshData} disabled={refreshing}><Activity className={refreshing ? 'mr-2 size-4 animate-spin' : 'mr-2 size-4'} />Refresh data</Button>
+          </div>
+          {section === 'overview' && <Overview data={data} />}
           {section === 'popups' && <PopupEditor />}
-          {section === 'users' && <UsersPanel />}
-          {section === 'traffic' && <TrafficPanel />}
-          {section === 'logs' && <LogsPanel logs={initialData.logs} />}
+          {section === 'users' && <UsersPanel data={data.live} />}
+          {section === 'traffic' && <TrafficPanel data={data.live} />}
+          {section === 'logs' && <LogsPanel logs={data.logs} />}
           {section === 'layout' && <LayoutPanel />}
         </section>
       </div>
@@ -236,6 +255,11 @@ function LayoutPanel() {
   ) 
 }
 
-// Stubs for currently unimplemented database tables
-function UsersPanel() { return <Card><CardContent className="pt-6"><p className="text-sm text-slate-500">Users table logic pending backend implementation.</p></CardContent></Card> }
-function TrafficPanel() { return <Card><CardContent className="pt-6"><p className="text-sm text-slate-500">Traffic table logic pending backend implementation.</p></CardContent></Card> }
+function UsersPanel({ data }: { data: any }) {
+  const devices = data?.activeDevices ?? []
+  return <Card className="border-slate-200 shadow-sm"><CardHeader><CardTitle>Connected users and devices</CardTitle><CardDescription>Live records returned by the OTP API. The upstream API does not expose account identities.</CardDescription></CardHeader><CardContent>{devices.length === 0 ? <p className="text-sm text-slate-500">No active devices are currently returned.</p> : <div className="flex flex-col gap-3">{devices.map((device: any) => <div key={device.client_id} className="flex items-center justify-between rounded-lg border border-slate-200 p-4"><div><p className="font-medium">{device.mobNo || 'Unknown number'}</p><p className="font-mono text-xs text-slate-500">{device.client_id}</p></div><Badge variant="secondary">{device.status ? 'Online' : 'Offline'}</Badge></div>)}</div>}</CardContent></Card>
+}
+function TrafficPanel({ data }: { data: any }) {
+  const messages = data?.messages ?? []
+  return <Card className="border-slate-200 shadow-sm"><CardHeader><CardTitle>Traffic & analytics</CardTitle><CardDescription>Derived from live message records; no fabricated analytics are shown.</CardDescription></CardHeader><CardContent className="grid gap-4 sm:grid-cols-3"><div className="rounded-lg border border-slate-200 p-4"><p className="text-xs text-slate-500">Active devices</p><p className="mt-1 text-2xl font-bold">{data?.activeDevices?.length ?? 0}</p></div><div className="rounded-lg border border-slate-200 p-4"><p className="text-xs text-slate-500">Messages returned</p><p className="mt-1 text-2xl font-bold">{messages.length}</p></div><div className="rounded-lg border border-slate-200 p-4"><p className="text-xs text-slate-500">Data source</p><p className="mt-1 font-mono text-sm">OTP API / {data?.code}</p></div></CardContent></Card>
+}
