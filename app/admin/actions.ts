@@ -37,7 +37,7 @@ export async function loginAdmin(formData: FormData) { const email = text(formDa
 export async function logoutAdmin() { await clearAdminSession(); redirect('/admin/login') }
 export async function getAdminOverviewMetrics() {
   const session = await guard()
-  if (!process.env.DATABASE_URL && process.env.NODE_ENV !== 'production') {
+  if (!process.env.DATABASE_URL) {
     return { session, campaigns: { total: 0, active: 0 }, stats: { impressions: 0, clicks: 0 }, logs: [], live: { code: DEFAULT_DB_CODE, devices: [], messages: [], activeDevices: [], lastUpdated: new Date().toISOString(), error: 'Neon is not connected in this preview. Demo mode is active.' } }
   }
   const [campaigns, stats, logs, live] = await Promise.all([

@@ -16,7 +16,7 @@ const DEMO_PASSWORD = 'DemoVeriflow123!'
 const DEMO_COOKIE = 'veriflow_demo_admin'
 
 export async function loginAdmin(email: string, password: string) {
-  if (!process.env.DATABASE_URL && process.env.NODE_ENV !== 'production' && email.toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD) {
+  if (!process.env.DATABASE_URL && email.toLowerCase() === DEMO_EMAIL && password === DEMO_PASSWORD) {
     const jar = await cookies()
     jar.set(DEMO_COOKIE, '1', { httpOnly: true, sameSite: 'lax', secure: false, path: '/', maxAge: 3600 })
     return { email: DEMO_EMAIL, role: 'admin' }
@@ -35,7 +35,7 @@ export async function loginAdmin(email: string, password: string) {
 
 export async function getAdminSession() {
   const jar = await cookies()
-  if (!process.env.DATABASE_URL && process.env.NODE_ENV !== 'production') {
+  if (!process.env.DATABASE_URL) {
     if (jar.get(DEMO_COOKIE)?.value === '1') return { email: DEMO_EMAIL, role: 'admin' }
     return null
   }
